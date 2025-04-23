@@ -70,7 +70,7 @@ def init_db():
 
         # Kết nối lại vào ETL_DB để tạo bảng
         DB_CONNECTION_STRING = DB_CONNECTION_STRING.replace("DATABASE=master", "DATABASE=ETL_DB")
-        conn = pyodbc.connect(db_conn_string)
+        conn = pyodbc.connect(DB_CONNECTION_STRING)
         cursor = conn.cursor()
 
         # Tạo bảng users
