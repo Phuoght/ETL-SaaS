@@ -49,75 +49,106 @@ PRO_COST_PER_1000_ROWS = 0.01  # Chi phí cho 1000 dòng với người dùng Pr
 daily_usage = defaultdict(lambda: defaultdict(int))  # {user_id: {date: rows_processed}}
 
 # Initialize database
+# Initialize database
 def init_db():
     """Khởi tạo cơ sở dữ liệu với các bảng users, workflows, logs, transactions."""
     try:
-        conn = pyodbc.connect(DB_CONNECTION_STRING)
+        # Kết nối đến master để kiểm tra/tạo database
+        conn = pyodbc.connect(DB_CONNECTION_STRING)  # chứa DATABASE=master
         cursor = conn.cursor()
-        
+
+        # Tạo database nếu chưa tồn tại
+        cursor.execute('''
+            IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ETL_DB')
+            BEGIN
+                CREATE DATABASE ETL_DB;
+            END
+        ''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Kết nối lại vào ETL_DB để tạo bảng
+        DB_CONNECTION_STRING = DB_CONNECTION_STRING.replace("DATABASE=master", "DATABASE=ETL_DB")
+        conn = pyodbc.connect(db_conn_string)
+        cursor = conn.cursor()
+
+        # Tạo bảng users
         cursor.execute('''
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
-            CREATE TABLE users (
-                id NVARCHAR(50) PRIMARY KEY,
-                email NVARCHAR(100) UNIQUE,
-                password NVARCHAR(255),
-                is_subscribed BIT DEFAULT 0,
-                balance FLOAT DEFAULT 0
-            )
+            BEGIN
+                CREATE TABLE users (
+                    id NVARCHAR(50) PRIMARY KEY,
+                    email NVARCHAR(100) UNIQUE,
+                    password NVARCHAR(255),
+                    is_subscribed BIT DEFAULT 0,
+                    balance FLOAT DEFAULT 0
+                )
+            END
         ''')
-        
+
+        # workflows
         cursor.execute('''
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'workflows')
-            CREATE TABLE workflows (
-                id NVARCHAR(50) PRIMARY KEY,
-                user_id NVARCHAR(50),
-                name NVARCHAR(100),
-                status NVARCHAR(50),
-                source_type NVARCHAR(50),
-                source_path NVARCHAR(255),
-                transformations NVARCHAR(MAX),
-                dest_path NVARCHAR(255),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
+            BEGIN
+                CREATE TABLE workflows (
+                    id NVARCHAR(50) PRIMARY KEY,
+                    user_id NVARCHAR(50),
+                    name NVARCHAR(100),
+                    status NVARCHAR(50),
+                    source_type NVARCHAR(50),
+                    source_path NVARCHAR(255),
+                    transformations NVARCHAR(MAX),
+                    dest_path NVARCHAR(255),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            END
         ''')
-        
+
+        # logs
         cursor.execute('''
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'logs')
-            CREATE TABLE logs (
-                id NVARCHAR(50) PRIMARY KEY,
-                workflow_id NVARCHAR(50),
-                timestamp DATETIME,
-                status NVARCHAR(50),
-                rows_processed INT,
-                error NVARCHAR(MAX),
-                cost FLOAT,
-                source_file NVARCHAR(255),
-                dest_file NVARCHAR(255),
-                FOREIGN KEY (workflow_id) REFERENCES workflows(id)
-            )
+            BEGIN
+                CREATE TABLE logs (
+                    id NVARCHAR(50) PRIMARY KEY,
+                    workflow_id NVARCHAR(50),
+                    timestamp DATETIME,
+                    status NVARCHAR(50),
+                    rows_processed INT,
+                    error NVARCHAR(MAX),
+                    cost FLOAT,
+                    source_file NVARCHAR(255),
+                    dest_file NVARCHAR(255),
+                    FOREIGN KEY (workflow_id) REFERENCES workflows(id)
+                )
+            END
         ''')
-        
+
+        # transactions
         cursor.execute('''
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'transactions')
-            CREATE TABLE transactions (
-                id NVARCHAR(50) PRIMARY KEY,
-                user_id NVARCHAR(50),
-                timestamp DATETIME,
-                amount FLOAT,
-                type NVARCHAR(50),
-                description NVARCHAR(255),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
+            BEGIN
+                CREATE TABLE transactions (
+                    id NVARCHAR(50) PRIMARY KEY,
+                    user_id NVARCHAR(50),
+                    timestamp DATETIME,
+                    amount FLOAT,
+                    type NVARCHAR(50),
+                    description NVARCHAR(255),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            END
         ''')
-        
+
         conn.commit()
         logger.info("Database initialized successfully")
+
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
         raise
+
     finally:
         conn.close()
-
 # Create directories
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
