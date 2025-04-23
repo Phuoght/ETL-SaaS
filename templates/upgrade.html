@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nâng cấp tài khoản - Nesux Data</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/billing">Lịch Sử Giao Dịch</a>
+        <a href="/wallet">Ví</a>
+        <a href="/upgrade" class="active">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Nâng cấp lên Pro</h1>
+        <p>Mở khóa toàn bộ tiềm năng của quy trình làm việc với tài khoản Pro!</p>
+        <ul>
+            <li><strong>Không giới hạn dòng:</strong> Xử lý không giới hạn số dòng mỗi quy trình (Tài khoản miễn phí bị giới hạn 1000 dòng)</li>
+            <li><strong>Hỗ trợ ưu tiên:</strong> Nhận phản hồi nhanh hơn cho các yêu cầu của bạn</li>
+            <li><strong>Huy hiệu Pro:</strong> Thể hiện đẳng cấp với huy hiệu Pro nổi bật</li>
+        </ul>
+        <form method="POST">
+            <button type="submit" class="btn warning">Nâng cấp ngay</button>
+        </form>
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.notification').forEach(el => el.style.display = 'none');
+        }, 3000);
+    </script>
+</body>
+</html>

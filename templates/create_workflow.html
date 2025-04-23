@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Workflow - Nesux Data</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.15.6/js/jsplumb.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/billing">Lịch sử Giao dịch</a>
+        <a href="/wallet">Ví</a>
+        <a href="/upgrade">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification {{ category }} animate__animated animate__fadeIn">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Tạo Workflow</h1>
+        <form id="workflow-form" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="text" id="name" name="name" placeholder="Nhập tên workflow" required>
+            </div>
+            <input type="hidden" id="flow" name="flow">
+
+            <div style="display: flex;">
+                <div id="toolbox">
+                    <h2>Toolbox</h2>
+                    <div class="toolbox-item" data-type="input">Input</div>
+                    <div class="toolbox-item" data-type="output">Output</div>
+                    <div class="toolbox-item" data-type="select_columns">Select Columns</div>
+                    <div class="toolbox-item" data-type="filter">Filter</div>
+                    <div class="toolbox-item" data-type="python_script">Python Script</div>
+                    <div class="toolbox-item" data-type="remove_nulls">Remove Nulls</div>
+                    <div class="toolbox-item" data-type="deduplicate">Deduplicate</div>
+                    <div class="toolbox-item" data-type="replace_values">Replace Values</div>
+                    <div class="toolbox-item" data-type="join">Join</div>
+                    <div class="toolbox-item" data-type="aggregate">Aggregate</div>
+                    <div class="toolbox-item" data-type="pivot">Pivot</div>
+                    <div class="toolbox-item" data-type="drop_columns">Drop Columns</div>
+                    <div class="toolbox-item" data-type="split_records">Split Records</div>
+                    <div class="toolbox-item" data-type="merge_records">Merge Records</div>
+                    <div class="toolbox-item" data-type="route_on_attribute">Route on Attribute</div>
+                    <div class="toolbox-item" data-type="enrich_data">Enrich Data</div>
+                    <div class="toolbox-item" data-type="convert_format">Convert Format</div>
+                    <div class="toolbox-item" data-type="replace_text">Replace Text</div>
+                    <div class="toolbox-item" data-type="execute_sql">Execute SQL</div>
+                    <div class="toolbox-item" data-type="branching">Branching</div>
+                    <div class="toolbox-item" data-type="external_task_sensor">External Task Sensor</div>
+                    <div class="toolbox-item" data-type="email_notification">Email Notification</div>
+                    <div class="toolbox-item" data-type="file_sensor">File Sensor</div>
+                    <div class="toolbox-item" data-type="data_quality_check">Data Quality Check</div>
+                    <div class="toolbox-item" data-type="dynamic_split">Dynamic Split</div>
+                    <div class="toolbox-item" data-type="normalize_data">Normalize Data</div>
+                    <div class="toolbox-item" data-type="fuzzy_match">Fuzzy Match</div>
+                    <div class="toolbox-item" data-type="data_masking">Data Masking</div>
+                    <div class="toolbox-item" data-type="json_flatten">JSON Flatten</div>
+                    <div class="toolbox-item" data-type="stream_filter">Stream Filter</div>
+                    <div class="toolbox-item" data-type="http_enrich">HTTP Enrich</div>
+                    <div class="toolbox-item" data-type="window_function">Window Function</div>
+                    <div class="toolbox-item" data-type="cross_join">Cross Join</div>
+                    <div class="toolbox-item" data-type="conditional_split">Conditional Split</div>
+                    <div class="toolbox-item" data-type="aggregate_multiple">Aggregate Multiple</div>
+                    <div class="toolbox-item" data-type="loop">Loop</div>
+                </div>
+                <div style="flex: 1; position: relative;">
+                    <div class="zoom-controls">
+                        <button type="button" id="zoom-in" class="btn primary">Zoom In</button>
+                        <button type="button" id="zoom-out" class="btn primary">Zoom Out</button>
+                        <span id="zoom-level">Zoom: 100%</span>
+                    </div>
+                    <div id="canvas-wrapper">
+                        <div id="canvas" style="position: relative; width: 100%; height: 600px; border: 1px solid #ccc; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNgGAXUAiYGBgYGBgYGAGzEAQf7I4eAAAAAAElFTkSuQmCC') repeat;">
+                            <!-- Canvas rỗng -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn primary" id="submit-btn">Tạo Workflow</button>
+        </form>
+    </div>
+
+    <div id="config-modal" class="modal animate__animated">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <form id="config-form">
+                <div id="config-fields"></div>
+                <div class="modal-buttons">
+                    <button type="button" id="save-config" class="btn primary">Lưu</button>
+                    <button type="button" id="cancel-config" class="btn danger">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../static/js/workflow.js"></script>
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.notification').forEach(el => {
+                el.classList.add('animate__fadeOut');
+                setTimeout(() => el.style.display = 'none', 500);
+            });
+        }, 3000);
+
+        document.getElementById('workflow-form').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang tạo...';
+        });
+    </script>
+</body>
+</html>

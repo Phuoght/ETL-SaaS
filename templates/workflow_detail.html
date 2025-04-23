@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết Workflow - Nesux Data</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/billing">Lịch Sử Giao Dịch</a>
+        <a href="/wallet">Ví</a>
+        <a href="/upgrade">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="notification {{ category }}">{{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Chi tiết Workflow: {{ workflow.name }}</h1>
+
+        {% if logs %}
+        <table>
+            <tr>
+                <th>Thời gian</th>
+                <th>Tệp Nguồn</th>
+                <th>Tệp Đích</th>
+                <th>Trạng thái</th>
+                <th>Số dòng</th>
+                <th>Lỗi</th>
+                <th>Chi phí ($)</th>
+            </tr>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.timestamp }}</td>
+                <td>{{ log.source_file }}</td>
+                <td>{{ log.dest_file }}</td>
+                <td class="{% if log.status == 'Success' %}status-completed{% elif log.status == 'Failed' %}status-failed{% endif %}">
+                    {{ log.status }}
+                </td>
+                <td>{{ log.rows_processed }}</td>
+                <td>{{ log.error if log.error else 'Không có' }}</td>
+                <td>{{ '%.6f' % log.cost }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Chưa có log nào cho workflow này.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.notification').forEach(el => el.style.display = 'none');
+        }, 3000);
+    </script>
+</body>
+</html>

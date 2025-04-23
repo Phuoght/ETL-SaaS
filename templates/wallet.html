@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ví - Nesux Data</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/billing">Lịch Sử Giao Dịch</a>
+        <a href="/wallet" class="active">Ví</a>
+        <a href="/upgrade">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="notification {{ category }}">{{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Ví của bạn</h1>
+        <p class="balance">Số dư hiện tại: {{ '%.2f' % balance }} USD</p>
+        <form method="POST">
+            <div class="section">
+                <label for="amount">Số tiền nạp (USD)</label>
+                <input type="number" id="amount" name="amount" step="1" min="1" placeholder="Ví dụ: 10.00" required>
+            </div>
+            <button type="submit" class="btn primary">Nạp tiền</button>
+        </form>
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.notification').forEach(el => el.style.display = 'none');
+        }, 3000);
+    </script>
+</body>
+</html>

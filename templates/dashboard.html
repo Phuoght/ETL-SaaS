@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Nesux Data</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard" class="active">Dashboard</a>
+        <a href="/billing">Lịch Sử Giao Dịch</a>
+        <a href="/wallet">Ví</a>
+        <a href="/upgrade">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="notification {{ category }}">{{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Dashboard {% if is_subscribed %}<span class="pro-badge"><b>Pro</b></span>{% endif %}</h1>
+        <p>Số dư: {{ '%.6f' % balance }} USD</p>
+        <a href="/create_workflow" class="btn create">Tạo Workflow Mới</a>
+
+        {% if workflows %}
+        <table>
+            <tr>
+                <th>Tên Workflow</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+                <th>Kết quả</th>
+                <th>Xóa</th>
+            </tr>
+            {% for workflow in workflows %}
+            <tr>
+                <td>{{ workflow.name }}</td>
+                <td class="{% if workflow.status == 'Success' %}status-completed{% elif workflow.status == 'Failed' %}status-failed{% endif %}">
+                    {{ workflow.status }}
+                </td>
+                <td>
+                    <a href="/workflow_view/{{ workflow.id }}" class="btn primary">Xem Thiết kế</a>
+                    <a href="/workflow_detail/{{ workflow.id }}" class="btn primary">Xem Logs</a>
+                </td>
+                <td>
+                    <a href="/download_output/{{ workflow.id }}" class="btn warning">Tải Kết quả</a>
+                </td>
+                <td>
+                    <form action="/delete_workflow/{{ workflow.id }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa workflow này?');">
+                        <button type="submit" class="btn danger delete">X</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>Chưa có workflow nào.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.notification').forEach(el => el.style.display = 'none');
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem Workflow - Nesux Data</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.15.6/js/jsplumb.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <style>
+        /* Đảm bảo navbar và các phần tử khác không bị che khuất */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .container {
+            margin-top: 60px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .btn.secondary {
+            position: relative;
+            z-index: 10;
+            margin-top: 20px;
+        }
+
+        /* Khu vực cố định cho canvas */
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            background: #f9f9f9;
+            z-index: 0;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 2000px;
+            height: 2000px;
+            top: 0;
+            left: 0;
+            cursor: grab;
+            transform-origin: 0 0;
+        }
+
+        /* CSS cho node */
+        .node {
+            position: absolute;
+            width: 100px;
+            height: 50px;
+            border: 1px solid #000;
+            background: #fff;
+            text-align: center;
+            line-height: 50px;
+            cursor: move;
+            z-index: 2;
+        }
+
+        .loop {
+            width: 200px;
+            height: 150px;
+            background: #f0f0f0;
+        }
+
+        .loop-content {
+            position: absolute;
+            top: 30px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            background: #fff;
+            border: 1px dashed #ccc;
+            overflow: auto;
+        }
+
+        .loop-child-node {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            border: 1px solid #000;
+            background: #fff;
+            text-align: center;
+            line-height: 40px;
+            cursor: move;
+            z-index: 3;
+        }
+
+        /* Cải thiện giao diện đường kết nối */
+        .jtk-connector {
+            transition: stroke 0.3s, stroke-width 0.3s;
+        }
+
+        .jtk-connector:hover {
+            stroke: #2ecc71 !important; /* Màu xanh lá khi hover */
+            stroke-width: 4px !important; /* Tăng độ dày khi hover */
+        }
+
+        /* Nhãn trên đường kết nối */
+        .jtk-overlay {
+            background: transparent; /* Nền trong suốt */
+            color: #333; /* Chữ màu xám đậm */
+            padding: 2px 5px;
+            font-size: 10px;
+            font-family: Arial, sans-serif;
+            font-weight: 500;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/dashboard">Nesux Data</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/billing">Lịch sử Giao dịch</a>
+        <a href="/wallet">Ví</a>
+        <a href="/upgrade">Nâng cấp</a>
+        <a href="/logout" class="logout">Đăng xuất</a>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Xem Workflow: {{ workflow.name }}</h1>
+        <div id="canvas-wrapper">
+            <div id="canvas"></div>
+        </div>
+    </div>
+    <div id="workflow-data" data-workflow='{{ workflow | tojson | safe }}'></div>
+
+    <script src="../static/js/workflow.js"></script>
+    <script>
+        $(document).ready(function() {
+            const rawData = $('#workflow-data').attr('data-workflow');
+            let workflow;
+
+            try {
+                workflow = JSON.parse(rawData);
+                console.log('Workflow Data:', workflow);
+
+                if (workflow && workflow.flow) {
+                    const flow = workflow.flow;
+                    console.log('Flow Data:', flow);
+
+                    if (!flow.nodes || !Array.isArray(flow.nodes)) {
+                        console.error('Flow không chứa nodes hoặc nodes không phải là mảng:', flow.nodes);
+                        alert('Workflow không chứa node nào hoặc dữ liệu không hợp lệ!');
+                        return;
+                    }
+
+                    if (!flow.connections || !Array.isArray(flow.connections)) {
+                        console.warn('Flow không chứa connections hoặc connections không phải là mảng:', flow.connections);
+                        flow.connections = [];
+                    }
+
+                    // Chờ jsPlumb khởi tạo
+                    const waitForJsPlumb = setInterval(function() {
+                        if (typeof window.jsPlumbInitialized !== 'undefined' && window.jsPlumbInitialized) {
+                            clearInterval(waitForJsPlumb);
+                            console.log('jsPlumb is ready, loading workflow...');
+                            loadWorkflow(flow, true);
+                        } else {
+                            console.log('Waiting for jsPlumb to initialize...');
+                        }
+                    }, 100);
+
+                    // Timeout sau 5 giây nếu jsPlumb không khởi tạo được
+                    setTimeout(function() {
+                        if (typeof window.jsPlumbInitialized === 'undefined' || !window.jsPlumbInitialized) {
+                            clearInterval(waitForJsPlumb);
+                            console.error('jsPlumb failed to initialize after 5 seconds.');
+                            alert('Không thể khởi tạo jsPlumb sau 5 giây. Vui lòng kiểm tra lại!');
+                        }
+                    }, 5000);
+                } else {
+                    console.error('Workflow không có flow hoặc bị thiếu:', workflow);
+                    alert('Dữ liệu thiết kế workflow không hợp lệ!');
+                }
+            } catch (e) {
+                console.error('Lỗi phân tích JSON từ data-workflow:', e);
+                alert('Lỗi khi đọc dữ liệu thiết kế workflow!');
+            }
+
+            // Ẩn thông báo sau 3 giây
+            setTimeout(() => {
+                document.querySelectorAll('.notification').forEach(el => el.style.display = 'none');
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
