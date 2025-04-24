@@ -47,77 +47,6 @@ PRO_COST_PER_1000_ROWS = 0.01  # Chi phí cho 1000 dòng với người dùng Pr
 
 # Track daily usage for free users
 daily_usage = defaultdict(lambda: defaultdict(int))  # {user_id: {date: rows_processed}}
-
-# Initialize database
-# Initialize database
-def init_db():
-    """Khởi tạo cơ sở dữ liệu với các bảng users, workflows, logs, transactions."""
-    try:
-        conn = pyodbc.connect(DB_CONNECTION_STRING)
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
-            CREATE TABLE users (
-                id NVARCHAR(50) PRIMARY KEY,
-                email NVARCHAR(100) UNIQUE,
-                password NVARCHAR(255),
-                is_subscribed BIT DEFAULT 0,
-                balance FLOAT DEFAULT 0
-            )
-        ''')
-        
-        cursor.execute('''
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'workflows')
-            CREATE TABLE workflows (
-                id NVARCHAR(50) PRIMARY KEY,
-                user_id NVARCHAR(50),
-                name NVARCHAR(100),
-                status NVARCHAR(50),
-                source_type NVARCHAR(50),
-                source_path NVARCHAR(255),
-                transformations NVARCHAR(MAX),
-                dest_path NVARCHAR(255),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        ''')
-        
-        cursor.execute('''
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'logs')
-            CREATE TABLE logs (
-                id NVARCHAR(50) PRIMARY KEY,
-                workflow_id NVARCHAR(50),
-                timestamp DATETIME,
-                status NVARCHAR(50),
-                rows_processed INT,
-                error NVARCHAR(MAX),
-                cost FLOAT,
-                source_file NVARCHAR(255),
-                dest_file NVARCHAR(255),
-                FOREIGN KEY (workflow_id) REFERENCES workflows(id)
-            )
-        ''')
-        
-        cursor.execute('''
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'transactions')
-            CREATE TABLE transactions (
-                id NVARCHAR(50) PRIMARY KEY,
-                user_id NVARCHAR(50),
-                timestamp DATETIME,
-                amount FLOAT,
-                type NVARCHAR(50),
-                description NVARCHAR(255),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        ''')
-        
-        conn.commit()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Error initializing database: {str(e)}")
-        raise
-    finally:
-        conn.close()
         
 # Create directories
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -1699,5 +1628,4 @@ def upgrade():
                          balance=current_user.balance, is_subscribed=current_user.is_subscribed)
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True)
