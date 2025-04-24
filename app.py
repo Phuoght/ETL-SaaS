@@ -34,8 +34,8 @@ login_manager.login_view = 'login'
 DB_CONNECTION_STRING = os.getenv('DB_CONNECTION_STRING')
 
 # Directories
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
+UPLOAD_FOLDER = '/home/ubuntu/workflow/uploads'
+OUTPUT_FOLDER = '/home/ubuntu/workflow/outputs'
 ALLOWED_EXTENSIONS = {'.csv', '.xlsx', '.xls', '.json'}
 
 # Chunk size for large data processing
